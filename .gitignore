@@ -1,0 +1,7 @@
+*.pyc
+__pycache__/
+*.key
+*.crt
+*.csr
+*.pub
+*.orig
