@@ -31,7 +31,7 @@ Each functions should works on each target OSes.
 ## Double certificate pinning
 The bootmaster have to create his own CA, that can be done by [gen-keys.go](gen-keys.go), at first setup.
 
-The certificate of this CA will be encoded into clients. That ensure us which zombies will connect only with certified C2S.
+The certificate of this CA will be encoded into clients. That ensure zombies will connect only with certified C2S.
 
 ### Private C2S's key
 To deploy a Command and Control Server, we have first generate it's own certificate then sing it by CA
@@ -70,4 +70,6 @@ Each client will run a command if it has a greater incremental number respect to
 Client initially has an empty certificates-revoked array. Periodically BM sends the signed updated list to all the clients, which use it to synchronize the internal array.
 Must pay attenction to don't **cut out yourself** blacklisting all the C2S before order  zombies to move to a new C2S.
 
-> *TODO*: find a way to contact all the clients and let they know new ip of a new C2S, without contact them through a previous C2S that could be go down in every moment. (crafted ad-hoc ICMP??)
+## TODO
+
+Find a way to contact all the clients and let they know new ip of a new C2S, without contact them through a previous C2S that could be go down in every moment. (crafted ad-hoc ICMP??)
