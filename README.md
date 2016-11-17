@@ -28,80 +28,46 @@ Each functions should works on each target OSes.
  2. GNU/Linux
  3. Mac OSX
 
-### Certificate pinning with double certificate
+## Double certificate pinning
 The bootmaster have to create his own CA, that can be done by [gen-keys.go](gen-keys.go), at first setup.
 
 The certificate of this CA will be encoded into clients. That ensure us which zombies will connect only with certified C2S.
 
-#### Private C2s's key
+### Private C2S's key
 To deploy a Command and Control Server, we have first generate it's own certificate then sing it by CA
 
-Of course, when we are going to deploy a C2S we have to deploy too: the private key and relative certificate with a valid signature.
+Of course, when we are going to deploy a C2S we have to deploy too the private key and relative certificate with a valid signature.
 
-Sometimes we want to deploy the C2S into a *not our* VPS (maybe owned by someone who doesn't know that we are using his server)... then the problem is:
-> what if the real owner find our C2S and keeps a backup of keys?
+Could happen sometimes we want deploy the C2S into a *not our* VPS (maybe owned by someone who doesn't know that we are using his server)... then the problem is:
+> What if the real owner find our C2S and keeps a backup of keys?
 
-He could use/abuse/steal our botnet. That's why we have a *couple of certificate* encoded in each clients.
+He could use/abuse/steal our botnet. That's why we have a *couple of certificates* encoded in each clients.
 
-#### Bootmaster (BM) keys
-At first setup, using [gen-keys.go](gen-keys.go), there will be generated BM pub and pvt keys.
-> *Note*: The pub key is not a x509 cert, but just a pub key. Like ssh-keys.
+### Bootmaster (BM) keys
+At first setup, using [gen-keys.go](gen-keys.go), there will be generated BM's pub and pvt keys.
+> *Note*: The pubkey is not wrapped into a x509 cert, but just a pubkey. Like ssh-keys.
 
 The pubkey will be encoded into clients as happens for the CA's certificate. Meanwhile the pvtkey, should remain in the BM's computer.
 
-The pvtkey will be used to sign every command the BM wants to send to the zombies. The zombies will check the signature before execute each command they receive.
+The pvtkey will be used to sign every command sendeds from BM to zombies. Those will check signature before execute each command they receive.
 
-A copy of the BM's pubkey will be encoded into the C2S too, hence it can decide if forward the command incoming to the zombies by checking the signature first.
+A copy of the BM's pubkey will be encoded into every C2S too, hence it can decides if forward the incoming command to the zombies by checking signature first.
 
 But there is a problem here:
-> What if the real owner of the server, keeps a copy of one valid command taht we sent to the zombies, and replay it infinite times?
+> What if the server real owner keeps a copy of one valid command that we sent to the zombies, and decides to replay it infinite times?
 
-He could DOS our botnet or iterate attacks (DDOS) that we had already stopped.
+He could DOS our botnet or iterate attacks (like DDOS) that we had already stopped.
 
-#### One-Time-Command
+### One-Time-Command
 
-....
+Each command should have different signature from all the previous. To achieve that we can add an incremental number and a timestamp. Those tow data will be used into the client's logic (and C2S too) to decide if runs command or not.
 
-
-#### Doble couple keys
-Un'altra coppia di chiavi viene usata per firmare ogni comando che viene impartito, e questo viene fatto direttamente sulla macchina del botmaster, in modo che la chiave privata che firma i messaggi non debba essere caricata in rete, ma può rimanere isolata (offline) nella macchina del botmaster.
-
-I client avranno quindi hardcodata la chiave pubblica di questa seconda coppia di chiavi, che utilizzeranno per validare la firma per ogni messaggio che gli arriva.
-
-Ogni volta che un comando viene impartito dovrà avere una firma diversa da tutti i comandi inviati precedentemente altrimenti, se intercettato, potrebbe essere riusato all'infinto.
-
-Per fare questo verrà generato un nonce dal botmaster ogni volta che un comando venga impartito, sarà fatto sia se si vuole comandare un solo client o un insieme di questi. Una volta generato viene comunicato a al/ai client interessati, che lo memorizzeranno.
-
-Successivamente il botmaster appende al comando che vuole impartire il nonce, in una forma del tipo: comando+"\n"+nonce (dovrà essere abbastanza lungo >=128 chars).
-
-Così facendo questo comando firmato sarà valido solo per una voltà, ovvero un **one-time-command**... in quanto se si volesse rimpartire lo stesso comando una seconda volta, bisognerebbe prima generare un nuovo nonce, ricondividerlo e quindi generare una firma valida.
-
-I client non accettano che lo stesso nonce sia utilizzato per impartire due comandi consecutivi.
+Each client will run a command if it has a greater incremental number respect to the last executed one and is passed at most one hour from the timestamp.
 
 ### Certificate Revocation
+> How can we revoke a certificate to avoid zombies connect to not more secure C2S?
 
-Grazie al sistema della doppia coppia di chiavi, se venisse rubata la chiave privata del server ci potremmo comunque collegare ai clients in quanto il certificato sarebbe ancora funzionante (se chi ha violato il server non lo abbia cancellato, **Per questo è importante avere un backup del certificato e della chiave privata del server in produzione**), e impartire come ordine di inserire quella chiave nella lista dei certificati revocati (anchessi hardcodati nella backdoor). Quindi creare un nuovo certificato per il nuovo server, firmarlo con la nostra CA ed eventualmente impartire l'ordine ai clients di connetteri ad un nuovo indirizzo ip.
+Client initially has an empty certificates-revoked array. Periodically BM sends the signed updated list to all the clients, which use it to synchronize the internal array.
+Must pay attenction to don't **cut out yourself** blacklisting all the C2S before order  zombies to move to a new C2S.
 
-
-## Notes
-### Socket Client/Server
- * Far comunicare client e server via socket
-
-### Steps with RSA
- 1. Generare chiavi rsa.GenerateKey(rand.Reader, 2048)
- 2. Codificarle in PEM per salvarle
-
-```golang
-import (
-    "crypto/x509"
-    "encoding/pem"
-  )
-
-x509.MarshalPKCS1PrivateKey(key *rsa.PrivateKey) converts a private key to ASN.1 DER encoded form.
-type Block struct
-    Bytes   []byte // The decoded bytes of the contents. Typically a DER encoded ASN.1 structure.
-pem.Encode(out io.Writer, b *Block)
-```
- 3. Dare la pubkey al client e la pvtkey al server
- 4. Server: scrive un messaggio, lo firma e lo invia al client
- 5. Client: controlla la firma, se è valida stampa il messaggio
+> *TODO*: find a way to contact all the clients and let they know new ip of a new C2S, without contact them through a previous C2S that could be go down in every moment. (crafted ad-hoc ICMP??)
