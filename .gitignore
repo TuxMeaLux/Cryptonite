@@ -5,3 +5,5 @@ __pycache__/
 *.csr
 *.pub
 *.orig
+client
+server

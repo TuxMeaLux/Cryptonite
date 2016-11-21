@@ -1,5 +1,7 @@
 # Cryptonite
-
+<p align="center">
+  <img src="https://wiki.staypirate.org/images/Cryptonite.jpg"  height="150" width="150" alt="Cryptonite logo"/>
+</p>
 ## Abstract
 This malware is intended to be a backdoor for the commonest OSes. It's been written in GO to easy cross-compiling static binary for different architectures and OSes. That also simplify future deployments.
 
@@ -62,7 +64,7 @@ He could DOS our botnet or iterate attacks (like DDOS) that we had already stopp
 
 Each command should have different signature from all the previous. To achieve that we can add an incremental number and a timestamp. Those tow data will be used into the client's logic (and C2S too) to decide if runs command or not.
 
-Each client will run a command if it has a greater incremental number respect to the last executed one and is passed at most one hour from the timestamp.
+Each client will run a command if it has a incremental number greater than the last one executed and is passed at most one hour from the timestamp.
 
 ### Certificate Revocation
 > How can we revoke a certificate to avoid zombies connect to not more secure C2S?
